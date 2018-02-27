@@ -133,7 +133,7 @@ class RegisterScreen extends React.Component {
         this.props.navigation.goBack()
       } else {
         alert('This account has already been registered')
-        this.props.navigation.navigate('LoginScreen');
+        this.props.navigation.navigate('LoginView');
       }
   /* do something with responseJson and go back to the Login view but
    * make sure to check for responseJson.success! */
@@ -162,6 +162,14 @@ class RegisterScreen extends React.Component {
 //-----------------------LOGGED IN SCREEN ---------------------------------
 
 class UsersScreen extends React.Component {
+  //creates title
+  static navigationOptions = {
+    title: 'Users',
+    headerRight: <TouchableOpacity onPress={() =>(props.navigation.navigate('Messages'))})>
+      <Text>Messages</Text>
+    </TouchableOpacity>
+  }
+  //constuctor
   constructor(props) {
     super(props)
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
@@ -169,6 +177,7 @@ class UsersScreen extends React.Component {
       dataSource: ds,
     }
   }
+  //fetches users to be displayed
   componentDidMount() {
     fetch('https://hohoho-backend.herokuapp.com/users', {
       method: 'GET',
@@ -182,22 +191,93 @@ class UsersScreen extends React.Component {
         dataSource: this.state.dataSource.cloneWithRows(responsetext.users)
       })
     })
-    // .then((response) => )
     .catch((err) => {
       alert('There was an error loading users ' + err)
     })
   }
-  static navigationOptions = {
-    title: 'Users'
+
+  touchUser(user) {
+    console.log(user._id, user.username)
+    fetch('https://hohoho-backend.herokuapp.com/messages',{
+      method:'POST',
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body:JSON.stringify({
+        to: user._id
+      })
+    })
+    .then((response) => response.json())
+    .then((responseJson) => {
+      // console.log(responseJson)
+      if(responseJson.success) {
+        Alert.alert(
+          'Sucess',
+          'Your JoJo has been sent to ' + user.username,
+          [{text: 'Ok'}] // Button
+        )
+      }
+    })
+    .catch((err) => {
+      alert('There was an error sending your yo ' + err)
+    })
   }
+
   render() {
     return (
       <ListView
         dataSource={this.state.dataSource}
-        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder}><Text style={[styles.textMedium]}>{rowData.username}</Text></TouchableOpacity>}/>
+        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder} onPress={this.touchUser.bind(this, rowData)}>
+          <Text style={[styles.textMedium]}>{rowData.username}</Text>
+        </TouchableOpacity>}/>
     );
   }
 }
+
+class MessageScreen extends React.Component {
+  //creates title
+  static navigationOptions = {
+    title: 'Messages',
+  }
+  //constuctor
+  constructor(props) {
+    super(props)
+    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    this.state ={
+      dataSource: ds,
+    }
+  }
+  //fetches users to be displayed
+  componentDidMount() {
+    fetch('https://hohoho-backend.herokuapp.com/users', {
+      method: 'GET',
+      headers: {
+        "Content-Type": "application/json"
+      },
+    })
+    .then((response) => {return response.json()})
+    .then((responsetext) => {
+      this.setState({
+        dataSource: this.state.dataSource.cloneWithRows(responsetext.users)
+      })
+    })
+    .catch((err) => {
+      alert('There was an error loading users ' + err)
+    })
+  }
+
+  render() {
+    return (
+      <ListView
+        dataSource={this.state.dataSource}
+        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder} onPress={this.touchUser.bind(this, rowData)}>
+          <Text style={[styles.textMedium]}>{rowData.username}</Text>
+        </TouchableOpacity>}/>
+    );
+  }
+}
+
+
 
 //Navigator
 export default StackNavigator({
@@ -212,6 +292,9 @@ export default StackNavigator({
   },
   Users: {
     screen: UsersScreen,
+  },
+  Messages: {
+    message: MessageScreen,
   }
 }, {initialRouteName: 'Login'});
 
