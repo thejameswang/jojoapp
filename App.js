@@ -28,7 +28,7 @@ class LoginScreen extends React.Component {
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.textBig}>Login to HoHoHo!</Text>
+        <Text style={styles.textBig}>Login to JoJo!</Text>
         <TouchableOpacity onPress={ () => {this.press()} } style={[styles.button, styles.buttonGreen]}>
           <Text style={styles.buttonLabel}>Tap to Login</Text>
         </TouchableOpacity>
@@ -41,14 +41,53 @@ class LoginScreen extends React.Component {
 }
 
 class RegisterScreen extends React.Component {
+  constructor() {
+    super();
+    this.state ={
+      username: null,
+      password: null
+    }
+  }
   static navigationOptions = {
     title: 'Register'
   };
-
+  register() {
+    fetch('https://hohoho-backend.herokuapp.com/register', {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: this.state.username,
+        password: this.state.password,
+      })
+    })
+    .then((response) => response.json())
+    .then((responseJson) => {
+      if(responseJson.success) {
+        this.props.navigation.goBack()
+      } else {
+        alert('This account has already been registered')
+        this.props.navigation.navigate('LoginScreen');
+      }
+  /* do something with responseJson and go back to the Login view but
+   * make sure to check for responseJson.success! */
+    })
+    .catch((err) => {
+      alert('There was an error ' + err)
+      /* do something if there was an error with fetching */
+    });
+  }
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.textBig}>Register</Text>
+        <TextInput style={styles.input} placeholder="Enter your username"
+          onChangeText={(text) => this.setState({username: text})}/>
+        <TextInput style={styles.input} placeholder="Enter your password" secureTextEntry={true}
+          onChangeText={(text) => this.setState({password: text})}/>
+        <TouchableOpacity style={[styles.button, styles.buttonRed]}>
+          <Text style={styles.buttonLabel} onPress={() => {this.register()}}>Register</Text>
+        </TouchableOpacity>
       </View>
     )
   }
@@ -94,6 +133,16 @@ const styles = StyleSheet.create({
     fontSize: 36,
     textAlign: 'center',
     margin: 10,
+  },
+  input: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderColor: '#444444',
+    borderWidth:1,
+    margin: 5,
+    justifyContent: 'center'
   },
   button: {
     alignSelf: 'stretch',
