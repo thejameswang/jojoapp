@@ -7,7 +7,7 @@ import {
   TextInput,
   ListView,
   Alert,
-  Button
+  Button,
 } from 'react-native';
 import { StackNavigator } from 'react-navigation';
 
@@ -28,6 +28,7 @@ class LoginScreen extends React.Component {
   }
 
   render() {
+    console.log('hello man')
     return (
       <View style={styles.container}>
         <Text style={styles.textBig}>Login to JoJo!</Text>
@@ -44,6 +45,10 @@ class LoginScreen extends React.Component {
 
 //Logging in Page
 class Login extends React.Component {
+  static navigationOptions = {
+    title: 'Login'
+  };
+
   constructor() {
     super()
     this.state ={
@@ -67,10 +72,10 @@ class Login extends React.Component {
     .then((responseJson) => {
       if(responseJson.success) {
         alert('LOGIN SUCCESSFUL')
-        this.props.navigation.navigate('screenNameGoesHere')
+        this.props.navigation.navigate('Users')
       } else {
         alert('This is an invalid login\n Try again')
-        this.props.navigation.navigate('LoginView');
+        this.props.navigation.goBack();
       }
   /* do something with responseJson and go back to the Login view but
    * make sure to check for responseJson.success! */
@@ -154,6 +159,46 @@ class RegisterScreen extends React.Component {
 }
 
 
+//-----------------------LOGGED IN SCREEN ---------------------------------
+
+class UsersScreen extends React.Component {
+  constructor(props) {
+    super(props)
+    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    this.state ={
+      dataSource: ds,
+    }
+  }
+  componentDidMount() {
+    fetch('https://hohoho-backend.herokuapp.com/users', {
+      method: 'GET',
+      headers: {
+        "Content-Type": "application/json"
+      },
+    })
+    .then((response) => {return response.json()})
+    .then((responsetext) => {
+      this.setState({
+        dataSource: this.state.dataSource.cloneWithRows(responsetext.users)
+      })
+    })
+    // .then((response) => )
+    .catch((err) => {
+      alert('There was an error loading users ' + err)
+    })
+  }
+  static navigationOptions = {
+    title: 'Users'
+  }
+  render() {
+    return (
+      <ListView
+        dataSource={this.state.dataSource}
+        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder}><Text style={[styles.textMedium]}>{rowData.username}</Text></TouchableOpacity>}/>
+    );
+  }
+}
+
 //Navigator
 export default StackNavigator({
   Login: {
@@ -164,6 +209,9 @@ export default StackNavigator({
   },
   LoginView: {
     screen: Login,
+  },
+  Users: {
+    screen: UsersScreen,
   }
 }, {initialRouteName: 'Login'});
 
@@ -229,5 +277,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     color: 'white'
+  },
+  textMedium: {
+    fontSize: 20,
+    textAlign: 'center',
+    margin: 10,
+  },
+  lowerBorder: {
+    borderBottomWidth: 1,
+    borderStyle: 'solid',
   }
 });
