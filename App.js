@@ -13,13 +13,15 @@ import { StackNavigator } from 'react-navigation';
 
 
 //Screens
+
+//Home login Screen
 class LoginScreen extends React.Component {
   static navigationOptions = {
     title: 'Login'
   };
 
   press() {
-
+    this.props.navigation.navigate('LoginView')
   }
   register() {
     this.props.navigation.navigate('Register');
@@ -40,6 +42,63 @@ class LoginScreen extends React.Component {
   }
 }
 
+//Logging in Page
+class Login extends React.Component {
+  constructor() {
+    super()
+    this.state ={
+      username: null,
+      password: null
+    }
+  }
+
+  login() {
+    fetch('https://hohoho-backend.herokuapp.com/login', {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: this.state.username,
+        password: this.state.password,
+      })
+    })
+    .then((response) => response.json())
+    .then((responseJson) => {
+      if(responseJson.success) {
+        alert('LOGIN SUCCESSFUL')
+        this.props.navigation.navigate('screenNameGoesHere')
+      } else {
+        alert('This is an invalid login\n Try again')
+        this.props.navigation.navigate('LoginView');
+      }
+  /* do something with responseJson and go back to the Login view but
+   * make sure to check for responseJson.success! */
+    })
+    .catch((err) => {
+      alert('There was an error ' + err)
+      /* do something if there was an error with fetching */
+    });
+  }
+
+
+  render() {
+    return(
+      <View style={styles.container}>
+        <TextInput style={styles.input} placeholder="Enter your username"
+          onChangeText={(text) => this.setState({username: text})}/>
+        <TextInput style={styles.input} placeholder="Enter your password" secureTextEntry={true}
+          onChangeText={(text) => this.setState({password: text})}/>
+        <TouchableOpacity style={[styles.button, styles.buttonRed]}>
+          <Text style={styles.buttonLabel} onPress={() => {this.login()}}>Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+}
+
+//Register Screen
+//Checks for User and Pass with database
 class RegisterScreen extends React.Component {
   constructor() {
     super();
@@ -51,6 +110,7 @@ class RegisterScreen extends React.Component {
   static navigationOptions = {
     title: 'Register'
   };
+
   register() {
     fetch('https://hohoho-backend.herokuapp.com/register', {
       method: 'POST',
@@ -102,6 +162,9 @@ export default StackNavigator({
   Register: {
     screen: RegisterScreen,
   },
+  LoginView: {
+    screen: Login,
+  }
 }, {initialRouteName: 'Login'});
 
 
