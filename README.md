@@ -1,7 +1,7 @@
 # JoJoapp
-The Yo app but not
 https://expo.io/@thejameswang/jojo
 
+The Yo app but not
 ## How it works
 Like the Yo app, the JoJo app sends a single message to users they are connected to.
 Using react native, we published an app that allows the user to send apps and see all the messages the user has sent and been sent.
