@@ -9,6 +9,7 @@ import {
   Alert,
   Button,
   RefreshControl,
+  AsyncStorage
 } from 'react-native';
 import { StackNavigator } from 'react-navigation';
 
@@ -29,7 +30,6 @@ class LoginScreen extends React.Component {
   }
 
   render() {
-    console.log('hello man')
     return (
       <View style={styles.container}>
         <Text style={styles.textBig}>Login to JoJo!</Text>
@@ -46,18 +46,35 @@ class LoginScreen extends React.Component {
 
 //Logging in Page
 class Login extends React.Component {
+
   static navigationOptions = {
     title: 'Login'
   };
 
   constructor() {
     super()
+    this.userInputValue = ''
+    this.passwordInputValue = ''
     this.state ={
       username: null,
       password: null
     }
   }
 
+  componentDidMount() {
+    AsyncStorage.multiGet(['username','password'])
+  		.then((result) => {
+        let savedUser = (JSON.parse(result[0][1]))
+        let savedPass = (JSON.parse(result[1][1]))
+        if(savedUser && savedPass) {
+          this.setState({
+            username: savedUser,
+            password: savedPass,
+        })
+        this.login()
+      }
+  	});
+  }
   login() {
     fetch('https://hohoho-backend.herokuapp.com/login', {
       method: 'POST',
@@ -86,23 +103,35 @@ class Login extends React.Component {
       /* do something if there was an error with fetching */
     });
   }
-
+  loginflow() {
+    AsyncStorage.multiSet([['username', JSON.stringify(this.userInputValue)],['password', JSON.stringify(this.passwordInputValue)]])
+    .then(() => {
+      this.setState({
+        username:this.userInputValue,
+        password:this.passwordInputValue})
+    })
+    .then(() => this.login())
+  }
 
   render() {
     return(
       <View style={styles.container}>
-        <TextInput style={styles.input} placeholder="Enter your username"
-          onChangeText={(text) => this.setState({username: text})}/>
-        <TextInput style={styles.input} placeholder="Enter your password" secureTextEntry={true}
-          onChangeText={(text) => this.setState({password: text})}/>
-        <TouchableOpacity style={[styles.button, styles.buttonRed]}>
-          <Text style={styles.buttonLabel} onPress={() => {this.login()}}>Login</Text>
+        <TextInput id='username' style={styles.input} placeholder="Enter your username"
+          onChangeText={(text) => {
+            this.userInputValue = text;
+          }}/>
+        <TextInput id='password' style={styles.input} placeholder="Enter your password" secureTextEntry={true}
+          onChangeText={(text) => {
+            this.passwordInputValue = text;
+          }
+        }/>
+        <TouchableOpacity style={[styles.button, styles.buttonRed]} onPress={() => {this.loginflow()}}>
+          <Text style={styles.buttonLabel}>Login</Text>
         </TouchableOpacity>
       </View>
     );
   }
 }
-
 //Register Screen
 //Checks for User and Pass with database
 class RegisterScreen extends React.Component {
@@ -151,8 +180,8 @@ class RegisterScreen extends React.Component {
           onChangeText={(text) => this.setState({username: text})}/>
         <TextInput  style={styles.input} placeholder="Enter your password" secureTextEntry={true}
           onChangeText={(text) => this.setState({password: text})}/>
-        <TouchableOpacity style={[styles.button, styles.buttonRed]}>
-          <Text style={styles.buttonLabel} onPress={() => {this.register()}}>Register</Text>
+        <TouchableOpacity style={[styles.button, styles.buttonRed]} onPress={() => {this.register()}}>
+          <Text style={styles.buttonLabel}>Register</Text>
         </TouchableOpacity>
       </View>
     )
@@ -226,7 +255,6 @@ class UsersScreen extends React.Component {
   }
 
   touchUser(user) {
-    console.log(user._id, user.username)
     fetch('https://hohoho-backend.herokuapp.com/messages',{
       method:'POST',
       headers: {
