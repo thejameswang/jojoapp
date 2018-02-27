@@ -8,6 +8,7 @@ import {
   ListView,
   Alert,
   Button,
+  RefreshControl,
 } from 'react-native';
 import { StackNavigator } from 'react-navigation';
 
@@ -148,9 +149,9 @@ class RegisterScreen extends React.Component {
       <View style={styles.container}>
         <TextInput style={styles.input} placeholder="Enter your username"
           onChangeText={(text) => this.setState({username: text})}/>
-        <TextInput style={styles.input} placeholder="Enter your password" secureTextEntry={true}
+        <TextInput onSubmitEditing={Keyboard.dismiss} style={styles.input} placeholder="Enter your password" secureTextEntry={true}
           onChangeText={(text) => this.setState({password: text})}/>
-        <TouchableOpacity style={[styles.button, styles.buttonRed]}>
+        <TouchableOpacity onSubmitEditing={Keyboard.dismiss} style={[styles.button, styles.buttonRed]}>
           <Text style={styles.buttonLabel} onPress={() => {this.register()}}>Register</Text>
         </TouchableOpacity>
       </View>
@@ -163,20 +164,44 @@ class RegisterScreen extends React.Component {
 
 class UsersScreen extends React.Component {
   //creates title
-  static navigationOptions = {
+  static navigationOptions = (props) => ({
     title: 'Users',
-    headerRight: <TouchableOpacity onPress={() =>(props.navigation.navigate('Messages'))})>
+    headerRight: <TouchableOpacity onPress={() =>(props.navigation.navigate('Messages'))}>
       <Text>Messages</Text>
     </TouchableOpacity>
-  }
+  })
   //constuctor
   constructor(props) {
     super(props)
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.state ={
       dataSource: ds,
+      refreshing: false,
     }
   }
+
+  //Creates refreshing
+
+  _onRefresh() {
+    this.setState({refreshing: true});
+    fetch('https://hohoho-backend.herokuapp.com/users', {
+      method: 'GET',
+      headers: {
+        "Content-Type": "application/json"
+      },
+    })
+    .then((response) => {return response.json()})
+    .then((responsetext) => {
+      this.setState({
+        dataSource: this.state.dataSource.cloneWithRows(responsetext.users),
+        refreshing: false
+      })
+    })
+    .catch((err) => {
+      alert('There was an error loading users ' + err)
+    })
+  }
+
   //fetches users to be displayed
   componentDidMount() {
     fetch('https://hohoho-backend.herokuapp.com/users', {
@@ -194,6 +219,10 @@ class UsersScreen extends React.Component {
     .catch((err) => {
       alert('There was an error loading users ' + err)
     })
+  }
+
+  message() {
+    this.props.navigation.navigate('Messages')
   }
 
   touchUser(user) {
@@ -226,6 +255,10 @@ class UsersScreen extends React.Component {
   render() {
     return (
       <ListView
+        refreshControl={<RefreshControl
+                    refreshing={this.state.refreshing}
+                    onRefresh={this._onRefresh.bind(this)}
+                  />}
         dataSource={this.state.dataSource}
         renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder} onPress={this.touchUser.bind(this, rowData)}>
           <Text style={[styles.textMedium]}>{rowData.username}</Text>
@@ -245,11 +278,13 @@ class MessageScreen extends React.Component {
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.state ={
       dataSource: ds,
+      refreshing: false
     }
   }
-  //fetches users to be displayed
-  componentDidMount() {
-    fetch('https://hohoho-backend.herokuapp.com/users', {
+
+  _onRefresh() {
+    this.setState({refreshing: true});
+    fetch('https://hohoho-backend.herokuapp.com/messages', {
       method: 'GET',
       headers: {
         "Content-Type": "application/json"
@@ -258,7 +293,26 @@ class MessageScreen extends React.Component {
     .then((response) => {return response.json()})
     .then((responsetext) => {
       this.setState({
-        dataSource: this.state.dataSource.cloneWithRows(responsetext.users)
+        dataSource: this.state.dataSource.cloneWithRows(responsetext.messages),
+        refreshing: false,
+      })
+    })
+    .catch((err) => {
+      alert('There was an error loading users ' + err)
+    })
+  }
+  //fetches users to be displayed
+  componentDidMount() {
+    fetch('https://hohoho-backend.herokuapp.com/messages', {
+      method: 'GET',
+      headers: {
+        "Content-Type": "application/json"
+      },
+    })
+    .then((response) => {return response.json()})
+    .then((responsetext) => {
+      this.setState({
+        dataSource: this.state.dataSource.cloneWithRows(responsetext.messages)
       })
     })
     .catch((err) => {
@@ -269,11 +323,20 @@ class MessageScreen extends React.Component {
   render() {
     return (
       <ListView
+        refreshControl={
+          <RefreshControl
+            refreshing={this.state.refreshing}
+            onRefresh={this._onRefresh.bind(this)}
+          />
+        }
         dataSource={this.state.dataSource}
-        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder} onPress={this.touchUser.bind(this, rowData)}>
-          <Text style={[styles.textMedium]}>{rowData.username}</Text>
-        </TouchableOpacity>}/>
-    );
+        renderRow={(rowData) => <View style={styles.lowerBorder}>
+          <Text style={[styles.textSmall]}>From: {rowData.from.username}</Text>
+          <Text style={[styles.textSmall]}>To: {rowData.to.username}</Text>
+          <Text style={[styles.textSmall]}>Message: {rowData.body}</Text>
+          <Text style={[styles.textSmall]}>When: {rowData.timestamp}</Text>
+        </View>}/>
+    )
   }
 }
 
@@ -294,7 +357,7 @@ export default StackNavigator({
     screen: UsersScreen,
   },
   Messages: {
-    message: MessageScreen,
+    screen: MessageScreen,
   }
 }, {initialRouteName: 'Login'});
 
@@ -369,5 +432,11 @@ const styles = StyleSheet.create({
   lowerBorder: {
     borderBottomWidth: 1,
     borderStyle: 'solid',
-  }
+    marginBottom: 3,
+    marginTop: 3,
+  },
+  textSmall: {
+    fontSize: 12,
+    margin: 2,
+  },
 });
