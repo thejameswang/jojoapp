@@ -149,9 +149,9 @@ class RegisterScreen extends React.Component {
       <View style={styles.container}>
         <TextInput style={styles.input} placeholder="Enter your username"
           onChangeText={(text) => this.setState({username: text})}/>
-        <TextInput onSubmitEditing={Keyboard.dismiss} style={styles.input} placeholder="Enter your password" secureTextEntry={true}
+        <TextInput  style={styles.input} placeholder="Enter your password" secureTextEntry={true}
           onChangeText={(text) => this.setState({password: text})}/>
-        <TouchableOpacity onSubmitEditing={Keyboard.dismiss} style={[styles.button, styles.buttonRed]}>
+        <TouchableOpacity style={[styles.button, styles.buttonRed]}>
           <Text style={styles.buttonLabel} onPress={() => {this.register()}}>Register</Text>
         </TouchableOpacity>
       </View>
