@@ -10,7 +10,8 @@ import {
   Button,
   RefreshControl,
   AsyncStorage,
-  Dimensions
+  Dimensions,
+  Modal
 } from 'react-native';
 import {Location, Permissions, MapView} from 'expo';
 import { StackNavigator } from 'react-navigation';
@@ -91,7 +92,7 @@ class Login extends React.Component {
     .then((response) => response.json())
     .then((responseJson) => {
       if(responseJson.success) {
-        this.props.navigation.navigate('Users')
+        this.props.navigation.navigate('ScreenSwiper')
       } else {
         alert('This is an invalid login\n Try again')
         this.props.navigation.goBack();
@@ -133,6 +134,8 @@ class Login extends React.Component {
     );
   }
 }
+
+
 //Register Screen
 //Checks for User and Pass with database
 class RegisterScreen extends React.Component {
@@ -251,9 +254,9 @@ class UsersScreen extends React.Component {
     })
   }
 
-  message() {
-    this.props.navigation.navigate('Messages')
-  }
+  // message() {
+  //   this.props.navigation.navigate('Messages')
+  // }
 
   touchUser(user) {
     fetch('https://hohoho-backend.herokuapp.com/messages',{
@@ -352,11 +355,20 @@ class MessageScreen extends React.Component {
     super(props)
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.screen = Dimensions.get('window');
-    this.screen.width = this.screen.width - 8
     this.state ={
       dataSource: ds,
-      refreshing: false
+      refreshing: false,
+      modalVisible: false,
+      rowData: null
     }
+  }
+
+  openModal(rowData) {
+    this.setState({modalVisible:true, rowData: rowData});
+  }
+
+  closeModal() {
+    this.setState({modalVisible:false});
   }
 
   _onRefresh() {
@@ -396,44 +408,87 @@ class MessageScreen extends React.Component {
       alert('There was an error loading users ' + err)
     })
   }
-
-  render() {
+  modal = () => {
     return (
-      <ListView
-        refreshControl={
-          <RefreshControl
-            refreshing={this.state.refreshing}
-            onRefresh={this._onRefresh.bind(this)}
-          />
-        }
-        dataSource={this.state.dataSource}
-        renderRow={(rowData) => <View style={styles.lowerBorder}>
-          <Text style={[styles.textSmall]}>From: {rowData.from.username}</Text>
-          <Text style={[styles.textSmall]}>To: {rowData.to.username}</Text>
-          <Text style={[styles.textSmall]}>Message: JoJo</Text>
-          <Text style={[styles.textSmall]}>When: {rowData.timestamp}</Text>
-          {(rowData.location && rowData.location.longitude) &&
-            console.log(rowData.location.longitude)
-          }
-          { (rowData.location && rowData.location.longitude) &&
-            <View style={{flex: 1}}>
-              <MapView style={{flex: 1, height: 100, width: this.screen.width, margin: 4,}}
-                region={{
-                  latitude:rowData.location.latitude,
-                  longitude: rowData.location.longitude,
+      <Modal visible={this.state.modalVisible} animationType={'slide'} onRequestClose={() => this.closeModal()}>
+        <MapView style={{flex: 1}}
+          region={{
+                  latitude:this.state.rowData.location.latitude,
+                  longitude:this.state.rowData.location.longitude,
                   latitudeDelta:0.0125,
                   longitudeDelta:0.0125,
                 }}
                 >
-                  <MapView.Marker
-                    coordinate={rowData.location
-                    }
-                  />
-                </MapView>
-            </View>
-          }
-        </View>}/>
+          <MapView.Marker
+            coordinate={this.state.rowData.location
+            }
+          />
+        </MapView>
+        <Button
+              onPress={() => this.closeModal()}
+              title="Back"
+          />
+      </Modal>
     )
+  }
+
+  render() {
+    return (
+      <View>
+        {this.state.modalVisible ? this.modal() : null}
+        <ListView
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.refreshing}
+              onRefresh={this._onRefresh.bind(this)}
+            />
+          }
+          dataSource={this.state.dataSource}
+          renderRow={(rowData) => <View style={styles.lowerBorder}>
+            <Text style={[styles.textSmall]}>From: {rowData.from.username}</Text>
+            <Text style={[styles.textSmall]}>To: {rowData.to.username}</Text>
+            <Text style={[styles.textSmall]}>Message: JoJo</Text>
+            <Text style={[styles.textSmall]}>When: {rowData.timestamp}</Text>
+            {/* {(rowData.location && rowData.location.longitude) &&
+              this.modal().bind(this, rowData);
+            } */}
+            { (rowData.location && rowData.location.longitude) &&
+              <View style={{flex: 1}} >
+                <MapView
+                  onPress={() => {this.openModal(rowData)}}
+                  style={{flex: 1, height: 100, width: this.screen.width, margin: 4,}}
+                  region={{
+                    latitude:rowData.location.latitude,
+                    longitude: rowData.location.longitude,
+                    latitudeDelta:0.0125,
+                    longitudeDelta:0.0125,
+                  }}
+                  >
+                    <MapView.Marker
+                      coordinate={rowData.location
+                      }
+                    />
+                  </MapView>
+              </View>
+            }
+          </View>}/>
+        </View>
+    )
+  }
+}
+
+class SwiperScreen extends React.Component {
+  static navigationOptions = {
+    title: 'JoJo!'
+  };
+
+  render() {
+    return (
+      <Swiper>
+        <UsersScreen/>
+        <MessageScreen/>
+      </Swiper>
+    );
   }
 }
 
@@ -454,6 +509,9 @@ export default StackNavigator({
   },
   Messages: {
     screen: MessageScreen,
+  },
+  ScreenSwiper: {
+    screen: SwiperScreen
   }
 }, {initialRouteName: 'Login'});
 
