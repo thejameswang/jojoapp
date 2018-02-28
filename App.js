@@ -9,10 +9,12 @@ import {
   Alert,
   Button,
   RefreshControl,
-  AsyncStorage
+  AsyncStorage,
+  Dimensions
 } from 'react-native';
+import {Location, Permissions, MapView} from 'expo';
 import { StackNavigator } from 'react-navigation';
-
+import Swiper from 'react-native-swiper'
 
 //Screens
 
@@ -89,7 +91,6 @@ class Login extends React.Component {
     .then((response) => response.json())
     .then((responseJson) => {
       if(responseJson.success) {
-        alert('LOGIN SUCCESSFUL')
         this.props.navigation.navigate('Users')
       } else {
         alert('This is an invalid login\n Try again')
@@ -116,11 +117,11 @@ class Login extends React.Component {
   render() {
     return(
       <View style={styles.container}>
-        <TextInput id='username' style={styles.input} placeholder="Enter your username"
+        <TextInput value={this.state.username} id='username' style={styles.input} placeholder="Enter your username"
           onChangeText={(text) => {
             this.userInputValue = text;
           }}/>
-        <TextInput id='password' style={styles.input} placeholder="Enter your password" secureTextEntry={true}
+        <TextInput value={this.state.password} id='password' style={styles.input} placeholder="Enter your password" secureTextEntry={true}
           onChangeText={(text) => {
             this.passwordInputValue = text;
           }
@@ -270,6 +271,51 @@ class UsersScreen extends React.Component {
       if(responseJson.success) {
         Alert.alert(
           'Sucess',
+          'Your JoJo Location has been sent to ' + user.username,
+          [{text: 'Ok'}] // Button
+        )
+      }
+    })
+    .catch((err) => {
+      alert('There was an error sending your yo ' + err)
+    })
+  }
+
+  sendLocation = async(user) => {
+    let { status } = await Permissions.askAsync(Permissions.LOCATION);
+    if (status !== 'granted') {
+      alert('FAILURE TO GET LOCATION')
+    } else {
+
+      let location = await Location.getCurrentPositionAsync({enableHighAccuracy: true});
+      // console.log(JSON.stringify(location))
+      this.longTouchUser(user, location)
+    }
+  }
+
+
+  longTouchUser(user, location) {
+
+    // console.log(locat ion)
+    fetch('https://hohoho-backend.herokuapp.com/messages',{
+      method:'POST',
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body:JSON.stringify({
+        to: user._id,
+        location: {
+          longitude: location.coords.longitude,
+          latitude: location.coords.latitude
+        }
+      })
+    })
+    .then((response) => response.json())
+    .then((responseJson) => {
+      // console.log(responseJson)
+      if(responseJson.success) {
+        Alert.alert(
+          'Sucess',
           'Your JoJo has been sent to ' + user.username,
           [{text: 'Ok'}] // Button
         )
@@ -288,7 +334,8 @@ class UsersScreen extends React.Component {
                     onRefresh={this._onRefresh.bind(this)}
                   />}
         dataSource={this.state.dataSource}
-        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder} onPress={this.touchUser.bind(this, rowData)}>
+        renderRow={(rowData) => <TouchableOpacity style={styles.lowerBorder} onPress={this.touchUser.bind(this, rowData)}
+          onLongPress={this.sendLocation.bind(this, rowData)}>
           <Text style={[styles.textMedium]}>{rowData.username}</Text>
         </TouchableOpacity>}/>
     );
@@ -304,6 +351,8 @@ class MessageScreen extends React.Component {
   constructor(props) {
     super(props)
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    this.screen = Dimensions.get('window');
+    this.screen.width = this.screen.width - 8
     this.state ={
       dataSource: ds,
       refreshing: false
@@ -361,13 +410,32 @@ class MessageScreen extends React.Component {
         renderRow={(rowData) => <View style={styles.lowerBorder}>
           <Text style={[styles.textSmall]}>From: {rowData.from.username}</Text>
           <Text style={[styles.textSmall]}>To: {rowData.to.username}</Text>
-          <Text style={[styles.textSmall]}>Message: {rowData.body}</Text>
+          <Text style={[styles.textSmall]}>Message: JoJo</Text>
           <Text style={[styles.textSmall]}>When: {rowData.timestamp}</Text>
+          {(rowData.location && rowData.location.longitude) &&
+            console.log(rowData.location.longitude)
+          }
+          { (rowData.location && rowData.location.longitude) &&
+            <View style={{flex: 1}}>
+              <MapView style={{flex: 1, height: 100, width: this.screen.width, margin: 4,}}
+                region={{
+                  latitude:rowData.location.latitude,
+                  longitude: rowData.location.longitude,
+                  latitudeDelta:0.0125,
+                  longitudeDelta:0.0125,
+                }}
+                >
+                  <MapView.Marker
+                    coordinate={rowData.location
+                    }
+                  />
+                </MapView>
+            </View>
+          }
         </View>}/>
     )
   }
 }
-
 
 
 //Navigator
